@@ -1,0 +1,86 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// Neutral resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
+#ifdef _WIN32
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// 11
+//
+
+1 11 
+BEGIN
+    0x0004, 0x0000, 0x0003, 0x0000, 0x0003, 0x0000, 0x0034, 0x0000, 0x0000, 
+    0x4000, 0x0000, 0x4000, 0x0044, 0x0000, 0x0001, 0x8000, 0x0001, 0x8000, 
+    0x0054, 0x0000, 0x0002, 0xc000, 0x0002, 0xc000, 0x0064, 0x0000, 0x0010, 
+    0x0001, 0x0025, 0x0031, 0x000d, 0x000a, 0x0000, 0x0000, 0x0010, 0x0001, 
+    0x0025, 0x0031, 0x000d, 0x000a, 0x0000, 0x0000, 0x0010, 0x0001, 0x0025, 
+    0x0031, 0x000d, 0x000a, 0x0000, 0x0000, 0x0010, 0x0001, 0x0025, 0x0031, 
+    0x000d, 0x000a, 0x0000, 0x0000
+END
+
+#endif    // Neutral resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
