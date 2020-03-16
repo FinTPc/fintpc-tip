@@ -575,7 +575,8 @@ bool RoutingCondition::internalEvalFunction( RoutingMessage& message ) const
 				bool valid = true;
 				try
 				{	
-					myFilter.ProcessMessage( message.getPayload()->getDoc(), headers, true );
+					string xformMessage = message.getPayload()->getText( RoutingMessagePayload::PLAINTEXT );
+					myFilter.ProcessMessage( ( unsigned char * )xformMessage.c_str(), NULL,  headers, true );
 				}
 				catch( const XSDValidationException& ex )
 				{
