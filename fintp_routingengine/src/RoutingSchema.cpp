@@ -766,7 +766,7 @@ bool RoutingSchema::RouteBatchReply( RoutingJob* job, RoutingMessage* theMessage
 		else
 		{
 			isBulk = true;
-			DEBUG( "The batch [" << fullBatchId << "] was ACKed. Bulk reply will be performed... " );
+			DEBUG( "The batch [" << fullBatchId << "] was ACKed. Bulk routing will be performed... " );
 		}
 	}
 	//optimistic treatment for all batch reply neither isAck neither isNack
@@ -774,7 +774,7 @@ bool RoutingSchema::RouteBatchReply( RoutingJob* job, RoutingMessage* theMessage
 	{
 		isBulk = true;
 		itemFeedback = evaluator->getOverrideFeedback();
-		DEBUG( "A batch reply [" << evaluator->getNamespace() << "] was received. Batch reply should be completed... " );
+		DEBUG( "A batch reply [" << evaluator->getNamespace() << "] was received. Bulk routing will be performed" );
 	}
 
 	// we dealt with bulk reply
