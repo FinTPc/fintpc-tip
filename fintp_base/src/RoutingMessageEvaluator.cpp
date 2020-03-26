@@ -160,7 +160,7 @@ const string InternalEvaluatorWrapper::m_FieldNames[ ENRICHEVALUATORLWRAPPER_FIE
 //InternalEvaluatorWrapper implementation
 string InternalEvaluatorWrapper::getFieldName( const int field )
 {
-	if ( ( field >= INTERNALXMLPAYLOAD_FIELDCOUNT ) || ( field < 0 ) )
+	if ( ( field >= ENRICHEVALUATORLWRAPPER_FIELDCOUNT ) || ( field < 0 ) )
 	{
 		stringstream errorMessage;
 		errorMessage << "Unknown field requested [" << field << "]";
