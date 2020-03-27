@@ -1057,32 +1057,25 @@ RoutingMessageEvaluator* RoutingMessage::getPayloadEvaluator( const bool forceRe
 		if ( m_PayloadEvaluator != NULL )
 		{
 			//TODO switch it to message type convention
-			string  messageType = m_PayloadEvaluator->getField(InternalXmlPayload::MESSAGETYPE);
-
-			if ( messageType != "FINTPENRICH")
-			{ 
-				RoutingKeywordMappings *keywordMappings = RoutingEngine::getRoutingMappings(); 
+			string messageType = m_PayloadEvaluator->getField( InternalXmlPayload::MESSAGETYPE );
+			RoutingKeywordMappings *keywordMappings = RoutingEngine::getRoutingMappings(); 
 			
-				// try to find message types mappings 
-				RoutingKeywordMappings::const_iterator mtFinder = keywordMappings->find( messageType );
-				if ( mtFinder == keywordMappings->end() )
-				{
-					stringstream errorMessage;
-					errorMessage << "Message type [" << messageType << "] mappings not found in configuration. Empty keyword mappings returned";
-				    TRACE( errorMessage.str() );
-				}
-				else
-					m_PayloadEvaluator->setKeywordMappings( mtFinder->second );
-
-				m_PayloadEvaluator->setIsoType( RoutingEngine::getRoutingIsoMessageType( messageType) );
-
-				if ( m_PayloadEvaluator->isBusinessFormat() )
-					m_OriginalMessageType = messageType;
+			// try to find message types mappings 
+			RoutingKeywordMappings::const_iterator mtFinder = keywordMappings->find( messageType );
+			if ( mtFinder == keywordMappings->end() )
+			{
+				stringstream errorMessage;
+				errorMessage << "Message type [" << messageType << "] mappings not found in configuration. Empty keyword mappings returned";
+			    TRACE( errorMessage.str() );
 			}
 			else
-			{
-				TRACE( "MessageType = [FINTPENRICH]. No keywords available." );
-			}
+				m_PayloadEvaluator->setKeywordMappings( mtFinder->second );
+
+			m_PayloadEvaluator->setIsoType( RoutingEngine::getRoutingIsoMessageType( messageType) );
+
+			if ( m_PayloadEvaluator->isBusinessFormat() )
+				m_OriginalMessageType = messageType;
+			
 
 			string evalFeedback = m_PayloadEvaluator->getOverrideFeedback();
 			RoutingMessageEvaluator::FeedbackProvider evalFeedbackProvider = m_PayloadEvaluator->getOverrideFeedbackProvider();
