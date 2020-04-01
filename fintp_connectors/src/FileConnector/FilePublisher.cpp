@@ -82,6 +82,7 @@ string FilePublisher::m_ReplyDestinationPath = "";
 string FilePublisher::m_Pattern = "";
 string FilePublisher::m_ReplyPattern = "";
 string FilePublisher::m_ReplyFeedback ="";
+string FilePublisher::m_AppInterfaceReplyXSLT = "";
 
 string FilePublisher::m_TransformFile = "";
 string FilePublisher::m_TempDestinationPath = "";
@@ -117,6 +118,7 @@ void FilePublisher::Init()
 	m_ReplyPattern = getGlobalSetting( EndpointConfig::WMQToApp, EndpointConfig::RPLFILEFILTER, m_Pattern );
 	m_ReplyDestinationPath = getGlobalSetting( EndpointConfig::WMQToApp, EndpointConfig::RPLDESTTPATH, m_DestinationPath );
 	m_ReplyFeedback = getGlobalSetting( EndpointConfig::WMQToApp, EndpointConfig::RPLFEEDBACK, "" );
+	m_AppInterfaceReplyXSLT = getGlobalSetting( EndpointConfig::WMQToApp, EndpointConfig::APPINTRPLXSLT, "" );
 
 	// Read Blob handling options
 	// Feature: To save BLOB base64 content field to disk on message publishing 
@@ -190,6 +192,55 @@ void FilePublisher::Init()
 			}
 			throw;
 		}
+	}
+
+	if( haveGlobalSetting( EndpointConfig::WMQToApp, EndpointConfig::REPLYBATCHMGRTYPE ) )
+	{
+		string replyBatchManagerType = getGlobalSetting( EndpointConfig::WMQToApp, EndpointConfig::REPLYBATCHMGRTYPE);
+		try
+		{
+			if ( replyBatchManagerType == "Flatfile" )
+			{
+				m_ReplyBatchManager = BatchManagerBase::CreateBatchManager( BatchManagerBase::Flatfile );
+			}
+			else if ( replyBatchManagerType == "XMLfile" )
+			{
+				m_ReplyBatchManager = BatchManagerBase::CreateBatchManager( BatchManagerBase::XMLfile );
+				BatchManager< BatchXMLfileStorage >* batchManager = static_cast< BatchManager< BatchXMLfileStorage >* >( m_ReplyBatchManager );
+				if ( haveGlobalSetting( EndpointConfig::WMQToApp, EndpointConfig::REPLYBATCHMGRXSLT ) )
+				{
+					string replyBatchXsltFile = getGlobalSetting( EndpointConfig::WMQToApp, EndpointConfig::REPLYBATCHMGRXSLT );
+					batchManager->storage().setXslt( replyBatchXsltFile );
+				}
+			}
+			else
+			{
+				TRACE( "Reply Batch manager type [" << replyBatchManagerType << "] not implemented. No batch processing will be performed." );
+			}
+		}	
+		catch( const std::exception& ex )
+		{
+			TRACE( "Reply Batch manager could not be created. [" << ex.what() << "]" );
+			if ( m_ReplyBatchManager != NULL )
+			{
+				delete m_ReplyBatchManager;
+				m_ReplyBatchManager = NULL;
+			}
+			throw;
+		}
+		catch( ... )
+		{
+			TRACE( "Reply Batch manager could not be created. [unknown exception]" );
+			if ( m_ReplyBatchManager != NULL )
+			{
+				delete m_ReplyBatchManager;
+				m_ReplyBatchManager = NULL;
+			}
+			throw;
+		}
+	}
+	else {
+		m_ReplyBatchManager = NULL;
 	}
 	if ( m_TempDestinationPath.length() == 0 )
 	{
@@ -293,6 +344,9 @@ void FilePublisher::internalStart()
 					DEBUG_GLOBAL( "First batch item ... opening storage" );
 					// open batch ( next iteration it will already be open )
 					m_BatchManager->open( m_Metadata.groupId(), ios_base::out );
+
+					if ( (m_ReplyBatchManager != NULL ) && (m_ReplyBatchManager->getStorageCategory() == BatchManagerBase::XMLfile ) )
+						m_ReplyBatchManager->open( m_Metadata.groupId(), ios_base::out );
 				}
 				
 				DEBUG( "Performing message loop ... " );
@@ -647,6 +701,8 @@ void FilePublisher::Process( const string& correlationId )
 	DEBUG( "Payload is ( first 100 bytes ) : [" << payloadTooLong );
 	
 	string messageOutput = Base64::decode( payload );
+	string replyMessageOutput = messageOutput;
+
 	if ( ( m_BatchManager != NULL ) )
 	{
 		BatchItem batchItem;
@@ -671,10 +727,94 @@ void FilePublisher::Process( const string& correlationId )
 			m_BatchManager->close( m_Metadata.groupId() );
 		}
 	}
+	string messageFileName = "";
+	if ( !m_AppInterfaceReplyXSLT.empty() )
+	{
+#ifdef WIN32
+		messageFileName = StringUtil::Replace( m_DestFileName, m_TempDestinationPath + "\\", "");
+#else
+		messageFileName = StringUtil::Replace( m_DestFileName, m_TempDestinationPath + "/", "");
+#endif// WIN32
 
+		m_ReplyTransportHeaders.Clear();
+
+		m_ReplyTransportHeaders.Add( XSLTFilter::XSLTFILE, m_AppInterfaceReplyXSLT );
+		m_ReplyTransportHeaders.Add( XSLTFilter::XSLTUSEEXT, "true");
+		m_ReplyTransportHeaders.Add( "XSLTPARAMBATCHID", StringUtil::Pad( m_Metadata.groupId(), "\'", "\'" ) );
+		m_ReplyTransportHeaders.Add( "XSLTPARAMMSGID", StringUtil::Pad( m_MessageId, "\'", "\'"));
+		m_ReplyTransportHeaders.Add( "XSLTPARAMFILENAME", StringUtil::Pad( messageFileName, "\'", "\'"));
+		m_ReplyTransportHeaders.Add( "XSLTPARAMREQUESTOR", StringUtil::Pad( getServiceName(), "\'", "\'" ) );
+
+		XERCES_CPP_NAMESPACE_QUALIFIER DOMDocument* inData = XmlUtil::DeserializeFromString( replyMessageOutput );
+
+		unsigned char **outXslt = new (unsigned char *);
+
+		try
+		{
+			XSLTFilter m_XSLTFilter;
+
+			m_XSLTFilter.ProcessMessage( inData, outXslt, m_ReplyTransportHeaders, true );
+			replyMessageOutput = (char *)*outXslt;
+
+			delete outXslt;
+			outXslt = NULL;
+		}
+		catch( ... )
+		{
+			if ( outXslt != NULL )
+			{
+				delete outXslt;
+				outXslt = NULL;
+			}
+
+			throw;
+		}
+	}
+	if ( m_ReplyBatchManager != NULL )
+	{
+		try
+		{
+			BatchItem replyBatchItem;
+			replyBatchItem.setPayload( replyMessageOutput );
+			replyBatchItem.setBatchId( m_Metadata.groupId() );
+			replyBatchItem.setMessageId( m_Metadata.id() );
+
+			DEBUG("Add reply message to batch ");
+			*m_ReplyBatchManager << replyBatchItem;
+
+			if (!moreMessages())
+			{
+				DEBUG("LAST reply message");
+
+				//serialize XML 	
+				if ( m_ReplyBatchManager->getStorageCategory() == BatchManagerBase::XMLfile )
+				{
+					BatchManager< BatchXMLfileStorage >* batchManager = dynamic_cast<BatchManager< BatchXMLfileStorage >*>( m_ReplyBatchManager );
+					replyMessageOutput = batchManager->storage().getSerializedXml();
+				}
+
+				m_ReplyBatchManager->close( m_Metadata.groupId() );
+			}
+		}
+		catch( ... )
+		{
+			throw;
+		}
+
+	}
 	// if there is no batchmanager, write it to file, if there is and this is the last message write it
 	if ( ( m_BatchManager == NULL ) || !moreMessages() )
+	{
 		ProcessFile( messageOutput, feedback );
+
+		if ( !messageFileName.empty() )
+		{
+			string fileExtension = m_Pattern.substr( m_Pattern.find_last_of( "." ) );
+			m_DestFileName = StringUtil::Replace( m_DestFileName, fileExtension, "_reply" + fileExtension );
+
+			ProcessFile( replyMessageOutput, feedback );
+		}
+	}
 	else
 	{
 		DEBUG( "There are more messages to process [not written to file]" );

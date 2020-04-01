@@ -66,6 +66,7 @@ const string RoutingMessageEvaluator::FEEDBACKFTP_LOSTRFD = "FTP99";
 const string RoutingMessageEvaluator::FEEDBACKFTP_NOREACT = "FTP21";
 
 // RoutingMessageEvaluator implementation 
+const string RoutingMessageEvaluator::AGGREGATIONTOKEN_INTRFEEDBACK = "INTERFACECODE";
 // new for toss enrich
 const string RoutingMessageEvaluator::AGGREGATIONTOKEN_SRCFILENAME = "SOURCEFILENAME";
 const string RoutingMessageEvaluator::AGGREGATIONTOKEN_DSTFILENAME = "DESTINATIONFILENAME";
@@ -161,6 +162,25 @@ const string InternalEvaluatorWrapper::m_FieldNames[ ENRICHEVALUATORLWRAPPER_FIE
 string InternalEvaluatorWrapper::getFieldName( const int field )
 {
 	if ( ( field >= ENRICHEVALUATORLWRAPPER_FIELDCOUNT ) || ( field < 0 ) )
+	{
+		stringstream errorMessage;
+		errorMessage << "Unknown field requested [" << field << "]";
+		throw invalid_argument( errorMessage.str() );
+	}
+	return m_FieldNames[field];
+}
+
+const string InternalAppInterfacePayload::m_FieldNames[INTERNALAPPINTERFACEPAYLOAD_FIELDCOUNT] = {
+	"sourcefilename",
+	"destinationfilename",
+	"interfacecode",
+	"batchid"
+};
+
+//InternalEvaluatorWrapper implementation
+string InternalAppInterfacePayload::getFieldName( const int field )
+{
+	if ( ( field >= INTERNALAPPINTERFACEPAYLOAD_FIELDCOUNT) || ( field < 0 ) )
 	{
 		stringstream errorMessage;
 		errorMessage << "Unknown field requested [" << field << "]";

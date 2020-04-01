@@ -99,6 +99,14 @@ string EndpointConfig::getName( const EndpointConfig::ConfigDirection prefix, co
 			( void )settingName.append( "BatchXsltFile" );
 			break;
 
+		case REPLYBATCHMGRTYPE:
+			(void)settingName.append( "ReplyBatchManagerType" );
+			break;
+
+		case REPLYBATCHMGRXSLT:
+			(void)settingName.append( "ReplyBatchXsltFile" );
+			break;
+
 		case BATCHMGRXPATH :
 			( void )settingName.append( "BatchXPath" );
 			break;
@@ -215,6 +223,10 @@ string EndpointConfig::getName( const EndpointConfig::ConfigDirection prefix, co
 
 		case RPLXSLT:
 			(void )settingName.append( "RepliesXslt" );
+			break;
+
+		case APPINTRPLXSLT:
+			( void )settingName.append( "AppInterfaceReplyXslt" );
 			break;
 
 		case BAKQUEUE :

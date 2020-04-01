@@ -43,10 +43,34 @@ using namespace FinTP;
 #define FEEDBACK_PROVIDER_COUNT 8
 #define INTERNALXMLPAYLOAD_FIELDCOUNT 20
 #define ENRICHEVALUATORLWRAPPER_FIELDCOUNT 2
+#define INTERNALAPPINTERFACEPAYLOAD_FIELDCOUNT 4
 
 //TODO rework this dependency
 
 class Plugin;
+
+class ExportedObject InternalAppInterfacePayload
+{
+	public : 
+		/**
+		 * Questioned values are only used by Enrich feature
+		 */
+		enum Fields
+			{
+				SOURCEFILENAME = 0,
+				DESTINATIONFILENAME = 1,
+				INTERFACEFEEDBACK = 2,
+				BATCHID = 3
+			};
+		
+
+	private :
+		static const string m_FieldNames[INTERNALAPPINTERFACEPAYLOAD_FIELDCOUNT];
+
+	public :
+		static string getFieldName( const int field );
+		static void setFieldName( const int field );
+};
 
 class ExportedObject InternalEvaluatorWrapper
 {
@@ -214,7 +238,8 @@ class ExportedObject RoutingMessageEvaluator
 			EBASTS,
 			SWIFTSTS,
 			BASICXML,
-			FINTPENRCH
+			FINTPENRCH,
+			APPINTERFACEREPLY
 		};
 		
 		enum FeedbackProvider
@@ -237,7 +262,8 @@ class ExportedObject RoutingMessageEvaluator
 		static const string FEEDBACKFTP_NOREACT;
 		static const string FEEDBACKFTP_BOREJECT;
 		static const string FEEDBACKFTP_PENDING;
-		
+
+		static const string AGGREGATIONTOKEN_INTRFEEDBACK;
 		static const string AGGREGATIONTOKEN_SRCFILENAME;
 		static const string AGGREGATIONTOKEN_DSTFILENAME;
 		static const string AGGREGATIONTOKEN_FTPID;

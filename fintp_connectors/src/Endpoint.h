@@ -74,6 +74,16 @@ class ExportedTestObject EndpointConfig
 			 */
 			BATCHMGRXSLT,
 			/**
+			* Config name : <b>ReplyBatchManagerType</b>
+			* Reply Batch manager type. Publisher use this to split messages, publishers to combine<Note>Accepted values : XMLfile, Flatfile</Note>
+			*/
+			REPLYBATCHMGRTYPE,
+			/**
+			* Config name : <b>ReplyBatchXsltFile</b>
+			* XSLT applied by dequeue to get an element from the batch<Note>Used by XMLfile batch managers</Note>
+			*/
+			REPLYBATCHMGRXSLT,
+			/**
 			 * Config name : <b>BatchManagerXPath</b>
 			 * XPath applied by enqueue to get insertion point in batch<Note>Used by XMLFile batch managers</Note>
 			 */
@@ -331,6 +341,11 @@ class ExportedTestObject EndpointConfig
 			 * Xslt used by MqFetcher to generate reply message
 			 */
 			RPLXSLT,
+			/**
+			 * Config name : <b>AppInterfaceReplyXslt</b>
+			 * Xslt used by FilePublisher to generate reply message
+			 */
+			APPINTRPLXSLT,
 			/**
 			 * Config name : <b>TransformFile</b>
 			 * Transform applied by FilePublisher on the message before writing it to file

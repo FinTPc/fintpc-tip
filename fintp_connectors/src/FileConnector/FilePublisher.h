@@ -114,6 +114,10 @@ class FilePublisher : public Endpoint
 			
 		string m_MessageId;
 
+		// used for generat InterfaceReply
+		NameValueCollection m_ReplyTransportHeaders;
+		BatchManagerBase* m_ReplyBatchManager;
+		static string m_AppInterfaceReplyXSLT;
 		// set only for xmlfile batchmanager type ( unique to each batch )
 		string m_BatchId;
 
