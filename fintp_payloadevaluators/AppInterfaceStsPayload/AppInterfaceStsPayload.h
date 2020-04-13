@@ -27,7 +27,7 @@
 #include "RoutingMessageEvaluator.h"
 
 #define XPATH_INTERFACEFEEDBACK "//x:AppInterfaceInfo/x:InterfaceFeedback/text()"
-#define XPATH_DESTFILENAME "//x:AppInterfaceInfo/x:InterfaceDetails/x:filename/text()"
+#define XPATH_DESTFILENAME "//x:AppInterfaceInfo/x:InterfaceDetails/x:Filename/text()"
 #define XPATH_BATHCID "//x:MessageInfo/x:GrpHdr/x:BatchId/text()"
 
 class AppInterfaceStsPayload : public RoutingMessageEvaluator
