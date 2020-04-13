@@ -151,5 +151,5 @@ wsrm::SequenceResponse* AppInterfaceStsPayload::getSequenceResponse()
 
 string AppInterfaceStsPayload::getMessageField( string xpath )
 {
-	return XPathHelper::SerializeToString( XPathHelper::Evaluate( xpath, m_XalanDocument, "urn:fintp:reply.01" ) );
+	return XPathHelper::SerializeToString( XPathHelper::Evaluate( xpath, m_XalanDocument, "urn:fintp:interface-reply.01" ) );
 }

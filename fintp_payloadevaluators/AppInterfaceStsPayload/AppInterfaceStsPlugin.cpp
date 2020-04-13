@@ -26,7 +26,7 @@ public:
 	AppInterfaceStsPlugin( const std::string& name, const std::string& version ): Plugin( name, version ) {}
 	bool hasNamespace( const string& aNamespace )
 	{
-		return ( aNamespace == "urn:fintp:reply.01" );
+		return ( aNamespace == "urn:fintp:interface-reply.01" );
 		
 	}
 	RoutingMessageEvaluator* newInstance( const XERCES_CPP_NAMESPACE_QUALIFIER DOMDocument* document )
