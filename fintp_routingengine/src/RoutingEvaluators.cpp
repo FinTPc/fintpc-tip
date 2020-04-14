@@ -18,14 +18,19 @@
 * phone +40212554577, office@allevo.ro <mailto:office@allevo.ro>, www.allevo.ro.
 */
 
+#include <boost/scoped_ptr.hpp>
+
 #include "Trace.h"
 #include "StringUtil.h"
+#include "LogManager.h"
 
 #include "XSD/XSDFilter.h"
 #include "XSD/XSDValidationException.h"
 
 #include "RoutingEngine.h"
 #include "RoutingEvaluators.h"
+#include "WSRM/SequenceFault.h"
+#include <xalanc/XercesParserLiaison/XercesDocumentWrapper.hpp>
 
 #ifdef USING_REGULATIONS
 #include "RoutingRegulations.h"
@@ -706,8 +711,87 @@ bool RoutingCondition::Validate( const string& options, RoutingMessage& message 
 	Regulations r;
 	r.Validate( options, message );
 	return true;
-#else
-	TRACE( "Routing engine not built with Regulations support, but Validate() invoked" );
-	return true;
 #endif //USING_REGULATIONS
+	DEBUG( "Routing engine not built with Regulations support, but xslt validation enabled" );
+	
+	bool valid = false;
+	if( options.empty() )
+	{
+		TRACE( "Validation xslt file missing in Validate() function. No validation performed" );
+	}
+	else
+	{
+		XSLTFilter xsltFilter;
+
+		NameValueCollection trHeaders;
+		trHeaders.Add( XSLTFilter::XSLTFILE, options );
+		trHeaders.Add( XSLTFilter::XSLTUSEEXT, "true" );
+
+		XERCES_CPP_NAMESPACE_QUALIFIER DOMDocument *doc = NULL;
+		
+		try
+		{
+			WorkItem< ManagedBuffer > workItem( new ManagedBuffer() );
+			xsltFilter.ProcessMessage( message.getPayload()->getDoc(), workItem, trHeaders, true );
+			string actualOutput = workItem.get()->str();
+
+			doc = XmlUtil::DeserializeFromString( actualOutput );
+			if ( doc == NULL ) 
+				throw logic_error( "Document could not be deserialized from input data" );
+
+			DOMElement* root = doc->getDocumentElement();
+			if ( root == NULL ) 
+				throw logic_error( "Document could not be deserialized from input data [missing root]" );
+
+			boost::scoped_ptr<wsrm::SequenceFault> response( wsrm::SequenceFault::Deserialize( root, message.getCorrelationId() ) );
+			
+			stringstream infoMessage;
+			string additionalInfoMessage;
+			infoMessage << "Routing rule Validate() ";
+
+			AppException aex( infoMessage.str(), EventType::Info );
+			aex.setCorrelationId( message.getCorrelationId() );	
+			if ( response == NULL )
+			{
+				infoMessage << "succeeded !";
+				valid = true;
+			}
+			else
+			{
+				infoMessage << "failed!" ;
+			
+				map< string, wsrm::Nack > nacks = response->getNacks();
+				map< string, wsrm::Nack >::iterator nacksIterator = nacks.begin() ;
+
+				if( nacksIterator == nacks.end() )
+					aex.addAdditionalInfo( "Invalid_Sequence" , response->getErrorCode() );
+				for(; nacksIterator != nacks.end(); nacksIterator++)
+				{
+					additionalInfoMessage = ( nacksIterator->second ).getErrorCode();
+					aex.addAdditionalInfo( "Invalid_Sequence_" + nacksIterator->first, additionalInfoMessage );
+					additionalInfoMessage.clear();
+				}
+			}
+
+			aex.setMessage( infoMessage.str() );
+			LogManager::Publish( aex );
+		}
+		catch( ... )
+		{
+			TRACE( "Unknown error occured during validation with XSLT" );
+			
+			if ( doc != NULL )
+				doc->release();
+			throw;
+		}
+	
+		if ( doc != NULL )
+		{
+			doc->release();
+			doc = NULL;
+		}
+
+	}
+
+	return valid;
 }
