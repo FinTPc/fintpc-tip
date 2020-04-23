@@ -28,10 +28,11 @@
 #include "BatchManager/Storages/BatchXMLfileStorage.h"
 
 #include "RoutingActions.h"
-#include "RoutingDbOp.h"
 #include "RoutingAggregationManager.h"
+#include "MatchMessageEvaluator.h"
+
 #include "RoutingEngine.h"
-#include "RoutingDbOp.h"
+
 
 XSLTFilter *RoutingAction::m_XSLTFilter = NULL;
 const int EnrichTemplate::m_EnrichFields[ENRICHFIELDSCOUNT] = { InternalXmlPayload::SENDER, InternalXmlPayload::RECEIVER, InternalXmlPayload::CURRENCY,
@@ -154,6 +155,8 @@ RoutingAction::ROUTING_ACTION RoutingAction::Parse( const string& action )
 	if( action == "Aggregate" )
 		return RoutingAction::AGGREGATE;
 
+	if( action == "SetMatch" )
+		return RoutingAction::SETMATCH;
 	throw invalid_argument( "Invalid action required" );
 }
 
@@ -262,6 +265,9 @@ string RoutingAction::Perform( RoutingMessage* message, const int userId, bool b
 		case RoutingAction::ENRICH :
 			internalPerformEnrichMessage( message );
 			break;
+
+		case RoutingAction::SETMATCH :
+			internalPerformSetMatch( message );
 
 		default :
 			throw invalid_argument( "Invalid action required" );
@@ -1615,7 +1621,116 @@ void RoutingAction::internalPerformEnrichMessage( RoutingMessage* message ) cons
 		throw aex;
 	}
 }
+void RoutingAction::internalPerformSetMatch( RoutingMessage* message ) const
+{
+	//guard the message
+	RoutingMessage matchMessage = *message;
 
+	string location = matchMessage.getDirection();
+	string correlationId =  matchMessage.getCorrelationId();
+	matchMessage.setFastpath( false );
+	
+	RoutingMessageEvaluator* evaluator = matchMessage.getPayloadEvaluator();
+	if ( evaluator == NULL )
+		throw runtime_error( "Message is not in a known format" );
+	
+	if( message->isAck() && location == RoutingMessage::MESSAGE_IN )
+	{
+		//switch location for matching on ACK
+		location = RoutingMessage::MESSAGE_OUT;
+
+		matchMessage.setMessageId( RoutingDbOp::GetOriginalMessageId( correlationId ) );
+
+		//if not fast ACK,  need original payload 
+		if( evaluator->isAck() )
+		{
+			RoutingAggregationCode aggCode = RoutingAggregationCode( RoutingMessageEvaluator::AGGREGATIONTOKEN_FTPID, correlationId );
+			string origPayload = RoutingAggregationManager::GetAggregationField( aggCode, RoutingMessageEvaluator::AGGREGATIONTOKEN_PAYLOAD );
+			if( origPayload.empty() )
+				throw runtime_error( "Cannot obtain original payload for matching" );
+			matchMessage.getPayload()->setText( origPayload, RoutingMessagePayload::XML );
+			//reset evaluator
+			evaluator = matchMessage.getPayloadEvaluator( true );
+		}	
+	}
+		
+	NameValueCollection transportHeaders;		
+	transportHeaders.Add( XSLTFilter::XSLTFILE, m_Param );
+	transportHeaders.Add( "XSLTPARAMDIRECTION", StringUtil::Pad( location, "\'", "\'" ) );
+
+	WorkItem< ManagedBuffer > outBuffer( new ManagedBuffer() );
+	ManagedBuffer* outTransformedBuffer = outBuffer.get();
+
+	XSLTFilter transformFilter;
+	transformFilter.ProcessMessage( evaluator->getDocument(), outBuffer, transportHeaders, true );
+	string hash = outTransformedBuffer->str();
+
+	if( RoutingEngine::TheRoutingEngine->GlobalSettings.getSettings().ContainsKey( "Match.CheckSP" ) )
+	string checkSP = ( RoutingEngine::TheRoutingEngine->GlobalSettings[ "Match.CheckSP" ] );
+
+	//switch location to perform check
+	string checkLocation = ( location == RoutingMessage::MESSAGE_OUT ) ? RoutingMessage::MESSAGE_IN : RoutingMessage::MESSAGE_OUT;
+	MatchXmlPayload* matchPayload = NULL;
+	try
+	{
+		if( location.empty() || hash.empty() )
+			throw runtime_error( "Cannot obtain all match fields: check location = [" + checkLocation + "] hash = [" + hash + "]" );
+
+		string hashId = RoutingDbOp::CheckMatchHash( hash, checkLocation );
+		DEBUG( ( hashId.empty() ? "Didn't got" : "Got" ) << " matched hashId = [" << hashId << "], from location = [" << checkLocation << "] using hash = [" << hash << "]." );
+		
+		matchPayload = MatchXmlPayload::getMatchPayload( evaluator, matchMessage.getMessageId(), correlationId );
+		matchPayload->insertMessage( location, hash, hashId );
+
+		delete matchPayload;			
+	}
+	catch( const runtime_error& rex)
+	{
+		stringstream errorMessage;
+		errorMessage << "Match processing failed: reason [" << rex.what() <<"] !";
+		TRACE( errorMessage.str() );
+		if( ( matchPayload != NULL ) )
+		{
+			try
+			{
+				matchPayload->insertMessage( location, hash, "" );
+				DEBUG( "Inserting match message fall back to UNCONFIRMED location" );
+				delete matchPayload;
+				return;
+			}
+			catch( ... )
+			{
+				if( matchPayload != NULL )
+					delete matchPayload;
+			}
+		}
+
+		AppException aex = internalPerformMoveToInvestigation( message, errorMessage.str() );
+		throw aex;
+	}
+	catch( ... )
+	{
+		TRACE( "Match processing failed: unknown reason!" );
+		if( matchPayload != NULL )
+		{
+			try
+			{
+				matchPayload->insertMessage( location, hash, "" );
+				DEBUG( "Inserting match message fall back to UNCONFIRMED location" );
+				delete matchPayload;
+				return;
+			}
+			catch( ... )
+			{
+				if( matchPayload != NULL )
+					delete matchPayload;
+			}
+		}
+
+		throw;
+	}
+
+}
 // EnrichTemplate implementation
 EnrichTemplate* EnrichTemplate::GetEnricher( RoutingMessageEvaluator* evaluator, const string& param )
 {

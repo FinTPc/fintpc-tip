@@ -67,7 +67,8 @@ class ExportedTestObject RoutingAction
 			HOLDQUEUE,
 			RELEASEQUEUE,
 
-			AGGREGATE
+			AGGREGATE,
+			SETMATCH
 		} ROUTING_ACTION;
 
 		// returns a friendly name of the action
@@ -180,6 +181,8 @@ class ExportedTestObject RoutingAction
 		}
 		
 		static RoutingExceptionMoveInvestig internalPerformeMoveToDuplicateReply( RoutingMessage* message, const string& reason = "A reply was received, but original message has already been replied." );
+
+		void internalPerformSetMatch(RoutingMessage* message) const;
 };
 
 class EnrichTemplate

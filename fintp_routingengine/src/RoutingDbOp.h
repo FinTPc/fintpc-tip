@@ -27,6 +27,11 @@
 #include "RoutingStructures.h"
 #include "RoutingAggregationManager.h"
 
+
+#include "ODBC\Postgres\PostgresDatabase.h"
+#include "ODBC\Postgres\PostgresDatabaseProvider.h"
+
+
 class ExportedTestObject RoutingDbOp
 {
 #if defined( TESTDLL_EXPORT ) || defined ( TESTDLL_IMPORT )
@@ -239,5 +244,9 @@ class ExportedTestObject RoutingDbOp
 		static DataSet* GetDelayedMessages( const string& tableName, const string& tokenId );
 		static void UpdateDelayedId( const string& tableName, const string& messageId, const string& delayedId );
 		static DataSet* GetEnrichData( const string& tableName, const string& filterId );
+		
+		static void insertMatchMessage( const string& spName, const string& location, const string& messageId, const string& correlId, const string& reference, 
+			const string& hash, const string& messageType, const string& hashId, vector<string>& internalFields );
+		static const string CheckMatchHash( const string hash, const string location );
 };
 #endif

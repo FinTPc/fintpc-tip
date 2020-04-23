@@ -3029,3 +3029,100 @@ void RoutingDbOp::UpdateDelayedId( const string& tableName, const string& messag
 	
 	data->ExecuteNonQueryCached( DataCommand::SP, spName.str(), params );
 }
+
+void RoutingDbOp::insertMatchMessage( const string& spName, const string& location, const string& messageId, const string& correlId, const string& reference,
+									const string& hash, const string& messageType, const string& hashId, vector<string>& internalFields )
+{
+	Database* data = getData();
+	ParametersVector params;
+
+	DataParameterBase* paramId = m_DatabaseProvider->createParameter( DataType::CHAR_TYPE );
+	paramId->setDimension( messageId.length() );
+	paramId->setString( messageId );
+	params.push_back( paramId );
+
+	DataParameterBase* paramCorrelId = m_DatabaseProvider->createParameter( DataType::CHAR_TYPE );
+	paramCorrelId->setDimension( correlId.length() );
+	paramCorrelId->setString( correlId );
+	params.push_back( paramCorrelId );
+
+	DataParameterBase* paramLocation = m_DatabaseProvider->createParameter( DataType::CHAR_TYPE );
+	paramLocation->setDimension( location.length() );
+	paramLocation->setString( location );
+	params.push_back( paramLocation );
+
+	DataParameterBase* paramHash = m_DatabaseProvider->createParameter( DataType::CHAR_TYPE );
+	paramHash->setDimension( hash.length() );
+	paramHash->setString( hash );
+	params.push_back( paramHash );
+
+	DataParameterBase* paramMsgType = m_DatabaseProvider->createParameter( DataType::CHAR_TYPE );
+	paramMsgType->setDimension( messageType.length() );
+	paramMsgType->setString( messageType );
+	params.push_back( paramMsgType );
+
+	DataParameterBase* paramRef = m_DatabaseProvider->createParameter( DataType::CHAR_TYPE );
+	paramRef->setDimension( reference.length() );
+	paramRef->setString( reference );
+	params.push_back( paramRef );
+		
+	vector< string >::iterator fieldsIterator = internalFields.begin();
+	while( fieldsIterator < internalFields.end() )
+	{
+		DataParameterBase* param = m_DatabaseProvider->createParameter( DataType::CHAR_TYPE );
+		param->setDimension( ( *fieldsIterator ).length() );
+		param->setString( *fieldsIterator );
+		params.push_back( param );
+		fieldsIterator++;
+	}
+
+	if( !hashId.empty() )
+	{
+		DataParameterBase* paramHashId = m_DatabaseProvider->createParameter( DataType::CHAR_TYPE );
+		paramHashId->setDimension( hashId.length() );
+		paramHashId->setString( hashId );
+		params.push_back( paramHashId );
+	}
+
+	DEBUG_GLOBAL( "Insert match message  [" << messageId << "]  in location [" << location << "]"  );	
+
+	data->ExecuteNonQueryCached( DataCommand::SP, spName, params );
+}
+
+const string RoutingDbOp::CheckMatchHash( const string hash, const string location )
+{
+
+	Database* data = getData();
+	DataSet* result = NULL;
+	ParametersVector params;
+	string hashId = "";
+
+	DataParameterBase* paramHash = m_DatabaseProvider->createParameter( DataType::CHAR_TYPE );
+	paramHash->setDimension( hash.length() );
+	paramHash->setString( hash );
+	params.push_back( paramHash );
+	
+	DataParameterBase* paramLocation = m_DatabaseProvider->createParameter( DataType::CHAR_TYPE );
+	paramLocation->setDimension( location.length() );
+	paramLocation->setString( location );
+	params.push_back( paramLocation );
+
+	
+	try
+	{
+		result = data->ExecuteQuery( DataCommand::SP, "TreasuryMatching.GetMatch", params );
+		if( result != NULL && result->size() > 0 )
+		{
+			hashId = ( result->getCellValue( 0, 0 ) )->getString();
+			delete result;
+		}
+	}
+	catch( ... )
+	{
+		TRACE( "Error while checking message match" )
+		if( result != NULL )
+			delete[] result;
+	}
+	
+	return hashId;	
+}
