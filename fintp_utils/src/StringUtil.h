@@ -88,6 +88,8 @@ namespace FinTP
 			static inline string ToString( const T value ) { return boost::lexical_cast< string >( value ); }
 			
 			static string FindBetween( const string& value, const string& first, const string& last );
+			static string RemoveBetween( const string& value, const string& first, const string& last );
+			static string AddBetween( const string& value, const string& toadd, const string& first, const string& last );
 			static string Pad( const string& value, const string& padleft, const string& padright );
 			static string Replace( const string& value, const string& what, const string& with );
 			static bool StartsWith( const string& value, const string& with );

@@ -39,7 +39,7 @@ namespace FinTP
 						TYPE_CHAR
 					};
 
-				private : 
+				protected : 
 					string m_ObjectId, m_ObjectGroupId;
 					unsigned long m_ObjectSize;
 					void* m_Object;
@@ -62,8 +62,7 @@ namespace FinTP
 					NotificationObject( const NotificationObject& source ) :
 						m_ObjectId( source.m_ObjectId ), m_ObjectGroupId( source.m_ObjectGroupId ), m_ObjectSize( source.m_ObjectSize ),
 						m_Object( source.m_Object ), m_ObjectType( source.m_ObjectType )
-					{
-					}
+					{}
 
 					NotificationObject& operator=( const NotificationObject& source )
 					{
@@ -79,9 +78,11 @@ namespace FinTP
 						return *this;
 					}
 
+					virtual ~NotificationObject() {}
+
 					string getObjectId() const { return m_ObjectId; }
 					
-					void* getObject() const { return m_Object; }
+					virtual void* getObject() const { return m_Object; }
 					template< typename T >
 					T* getObject() const { return dynamic_cast< T* >( m_Object ); }
 
@@ -90,10 +91,46 @@ namespace FinTP
 					unsigned long getObjectSize() const { return m_ObjectSize; }
 			};
 
+			class ExportedObject DeepNotificationObject : public NotificationObject
+			{
+				private :
+					ManagedBuffer m_DeepObject;
+
+				public :
+					DeepNotificationObject( const string& objectId, ManagedBuffer* object, const string& objectGroupId = "", const unsigned long objectSize = 0, 
+						NotificationType objectType = NotificationObject::TYPE_XMLDOM ) : NotificationObject( objectId, objectGroupId, 0, objectType ), m_DeepObject( *object )
+					{}
+
+					DeepNotificationObject( const DeepNotificationObject& source ) : NotificationObject( source.m_ObjectId, source.m_ObjectGroupId, 0, source.m_ObjectType ), 
+						m_DeepObject( source.m_DeepObject )
+					{}
+
+					DeepNotificationObject& operator=( const DeepNotificationObject& source )
+					{
+						if ( this == &source )
+							return *this;
+
+						m_DeepObject.copyFrom( source.m_DeepObject.str() );
+						m_ObjectId = source.m_ObjectId;
+						m_ObjectGroupId = source.m_ObjectGroupId;
+						m_ObjectSize = source.m_DeepObject.size();
+						m_ObjectType = source.m_ObjectType;
+
+						return *this;
+					}
+
+					~DeepNotificationObject()
+					{}
+
+					void* getObject() const { return (void *)&m_DeepObject; }
+					ManagedBuffer getDeepObject() const { return m_DeepObject; }
+			};
+
 		public :
 
-			virtual void setWatchOptions( int options ) = 0;
+			virtual void setWatchOptions( int options ) = 0;			
 			typedef WorkItemPool< NotificationObject > NotificationPool;
+			typedef WorkItemPool< DeepNotificationObject > DeepNotificationPool;
 
 			void setCallback( void ( *callback )( const NotificationObject* ) )
 			{
@@ -111,19 +148,21 @@ namespace FinTP
 				m_IdleCallback = callback;
 			}
 
+			void setIdleTime( const unsigned int idleTime ) { m_IdleTime = idleTime; }
+
 		protected : 
 
 			explicit AbstractWatcher( NotificationPool* notificationPool, void *( *prepareCallback )( void *object ) = NULL ) : 
 				m_Callback( NULL ), m_PrepareCallback( prepareCallback ), m_IdleCallback( NULL ),
 				m_ScanThreadId( 0 ), m_Enabled( false ), m_NotificationType( NotificationObject::TYPE_XMLDOM ), 
-				m_IdleTimeout( 0 ), m_NotificationPool( notificationPool )
+				m_IdleTimeout( 0 ), m_NotificationPool( notificationPool ), m_IdleTime( 0 )
 				{
 				}
 
 			explicit AbstractWatcher( void ( *callback )( const NotificationObject* ), void *( *prepareCallback )( void *object ) = NULL ) :
 				m_Callback( callback ), m_PrepareCallback( prepareCallback ),  m_IdleCallback( NULL ),
 				m_ScanThreadId( 0 ), m_Enabled( false ), m_NotificationType( NotificationObject::TYPE_XMLDOM ),
-				m_IdleTimeout( 0 ), m_NotificationPool( NULL )
+				m_IdleTimeout( 0 ), m_NotificationPool( NULL ), m_IdleTime( 0 )
 				{
 				}
 
@@ -136,7 +175,17 @@ namespace FinTP
 			pthread_t m_ScanThreadId;
 			bool m_Enabled;
 			NotificationObject::NotificationType m_NotificationType;
+			/**
+			 * \property	unsigned int m_IdleTimeout
+			 * \brief	Timeout threshold to call \property m_IdleCallback, when there are no new records.
+			 * 			Not implemneted yet!
+			 */
 			unsigned int m_IdleTimeout;
+			/**
+			 * \property	unsigned int m_IdleTime
+			 * \brief	Idle time when there are no new records
+			 */
+			unsigned int m_IdleTime;
 
 			NotificationPool* m_NotificationPool;
 

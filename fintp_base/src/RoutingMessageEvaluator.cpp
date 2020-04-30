@@ -320,7 +320,9 @@ bool RoutingMessageEvaluator::isIso( const string& msgNamespace )
 
 bool RoutingMessageEvaluator::isBusinessFormat() const
 {
-	return ( CheckPayloadType( RoutingMessageEvaluator::SWIFTXML ) || isIso( m_Namespace ) );
+	return ( CheckPayloadType( RoutingMessageEvaluator::SWIFTXML ) || 
+			CheckPayloadType( RoutingMessageEvaluator::ISOINVOICE ) || 
+			isIso( m_Namespace ) );
 }
 
 bool RoutingMessageEvaluator::isEnrichFormat() const

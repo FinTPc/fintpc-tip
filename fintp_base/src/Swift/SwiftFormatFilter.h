@@ -22,19 +22,148 @@
 #define SWIFTFORMATFILTER_H
 
 #include "../AbstractFilter.h"
+#include "XmlUtil.h"
+#include <unicode/uchriter.h>
 
 namespace FinTP
 {
+	class SwiftMediator
+	{
+		public:
+
+			virtual ~SwiftMediator(){};
+			void virtual FetchPreparation( ManagedBuffer* inputBuffer, ManagedBuffer* outputBuffer, const string& key, const string& digest ) = 0;
+			void virtual PublishPreparation( ManagedBuffer* inputBuffer, ManagedBuffer* outputBuffer, const string& key, const string& digest ) = 0;
+
+	};
+
+	class FINMediator : public SwiftMediator
+	{
+		public:
+			/**
+			 * Security check only. ( no leading/trailing characters format )
+			 */
+			void FetchPreparation( ManagedBuffer* inputBuffer, ManagedBuffer* outputBuffer, const string& key, const string& digest );
+			void PublishPreparation( ManagedBuffer* inputBuffer, ManagedBuffer* outputBuffer, const string& key, const string& digest );
+
+		private:
+			
+			/**
+			 * Mandatory to filter all legitimate messages for security check
+			 * Clean FIN      : Check security markers
+			 * Prefixed FIN   : Skip security markers check, return input
+			 * Not FIN        : Skip security markers check, return input
+			 */
+			bool isSuportedFormat( const string& inputMessage );
+
+	};
+
+	class PCCMediator : public SwiftMediator
+	{
+		public:
+			
+			void FetchPreparation( ManagedBuffer* inputBuffer, ManagedBuffer* outputBuffer, const string& key, const string& digest );
+			void PublishPreparation( ManagedBuffer* inputBuffer, ManagedBuffer* outputBuffer, const string& key, const string& digest );
+
+		private:
+
+			/**
+			 * PCC trailing blanc spaces
+			 */
+			string addWhitespaces( const string& inputString );
+
+	};
+
+	class StrictFormatMediator : public SwiftMediator
+	{
+		public:
+
+			void FetchPreparation( ManagedBuffer* inputBuffer, ManagedBuffer* outputBuffer, const string& key, const string& digest );
+			void PublishPreparation( ManagedBuffer* inputBuffer, ManagedBuffer* outputBuffer, const string& key, const string& digest );
+
+		private:
+
+			/**
+			 * Mandatory to filter all legitimate messages for security check
+			 * PAYLOAD and PDU   : Check security markers
+			 * PAYLOAD           : Skip security markers check, return input
+			 * PDU               : Skip security markers check, return input
+			 */
+			bool isStrictFormat( const ManagedBuffer& managedBuffer );
+
+	};
+
+	class MXMediator : public SwiftMediator
+	{
+		public:
+
+			/**
+			 * Security check only. ( no leading/trailing characters format )
+			 */
+			void FetchPreparation( ManagedBuffer* inputBuffer, ManagedBuffer* outputBuffer, const string& key, const string& digest );
+			void PublishPreparation( ManagedBuffer* inputBuffer, ManagedBuffer* outputBuffer, const string& key, const string& digest );
+
+		private:
+
+			string Canonicalize( XERCES_CPP_NAMESPACE_QUALIFIER DOMDocument* doc ) const;
+			bool CheckLAU( XERCES_CPP_NAMESPACE_QUALIFIER DOMDocument* DataPDU, const string& key ) const;
+			/**
+			 * Mandatory to filter all legitimate messages for security check
+			 * PAYLOAD and PDU   : Check security markers
+			 * PAYLOAD           : Skip security markers check, return input
+			 * PDU               : Skip security markers check, return input
+			 */
+			bool isSuportedFormat( const string& payloadDigest );
+			
+
+	};
+
+	class ExportedObject IPMediator : public SwiftMediator
+	{
+		public:
+
+			enum AlgorithmType
+			{
+				UKN_ALGORITHM = 0,
+				RSA_ALGORITHM = 1,
+				DSA_ALGORITHM = 2,
+				DH_ALGORITHM = 3,
+				ECC_ALGORITHM =	4
+			};
+
+			/**
+			* Security check only. ( no leading/trailing characters format )
+			*/
+			void FetchPreparation( ManagedBuffer* inputBuffer, ManagedBuffer* outputBuffer, const string& key, const string& digest );
+			void PublishPreparation( ManagedBuffer* inputBuffer, ManagedBuffer* outputBuffer, const string& key, const string& digest );
+
+		private:
+
+			string Canonicalize( XERCES_CPP_NAMESPACE_QUALIFIER DOMDocument* doc ) const;
+			bool CheckSignature( XERCES_CPP_NAMESPACE_QUALIFIER DOMDocument* messageData, const string& key ) const;
+			/**
+			* Mandatory to filter all legitimate messages for security check
+			* PAYLOAD and PDU   : Check security markers
+			* PAYLOAD           : Skip security markers check, return input
+			* PDU               : Skip security markers check, return input
+			*/
+			bool isSuportedFormat( const string& payloadDigest );
+	};
 	class ExportedObject SwiftFormatFilter : public AbstractFilter
 	{
 		public:
 
 			static const string LAU_KEY;
 			static const string SERVICE_KEY;
-
+			static const string PAYLOAD_DIGEST;
+			static const string CERTIFICATE_PATH;
 			/* APP_KEY values */
 			static const string	SAA_FILEACT;
+			static const string	SAA_FILEACTXML;
+			static const string	SAA_FILEACTMX;
+			static const string	SAA_FILEACTIP;
 			static const string SAA_FIN;
+			static const string SAA_FINPCC;
 			static const string	SAE;
 
 
@@ -59,9 +188,15 @@ namespace FinTP
 
 			FilterResult ProcessMessage( AbstractFilter::buffer_type inputData, unsigned char** outputData, NameValueCollection& transportHeaders, bool asClient );
 
+			static UnicodeString EscapeNonSwiftChars( UnicodeString& in, const string& replacement = "."  );
+			static void EscapeNonSwiftChars( DOMElement* currentItemRoot, const string& replacement = "."  );
+			static string EscapeNonSwiftChars( const string& in, const string& replacement = "."  );
+
 		private:
 
 			bool isStrictFormat( const ManagedBuffer& managedBuffer );
+
+			auto_ptr<SwiftMediator> GetSwiftMediator(const string& service);
 
 			void ValidateProperties( NameValueCollection& transportHeaders );
 	};

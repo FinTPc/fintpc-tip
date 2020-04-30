@@ -239,7 +239,8 @@ class ExportedObject RoutingMessageEvaluator
 			SWIFTSTS,
 			BASICXML,
 			FINTPENRCH,
-			APPINTERFACEREPLY
+			APPINTERFACEREPLY,
+			ISOINVOICE
 		};
 		
 		enum FeedbackProvider

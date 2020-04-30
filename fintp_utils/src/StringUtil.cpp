@@ -114,6 +114,38 @@ string StringUtil::Trim( const string& source, bool allWhitespaces )
 	}
 }
 
+string StringUtil::RemoveBetween( const string& value, const string& first, const string& last )
+{
+	int firstPosition = value.find( first );
+	if( firstPosition<0 )
+		throw runtime_error( "Index out of bounds ( first )" );
+
+	int lastPosition = value.find( last );
+	if ( lastPosition<0 )
+		throw runtime_error( "Index out of bounds ( last )" );
+
+	string bufferMessage = value.substr( 0,firstPosition + first.length() );
+	bufferMessage += value.substr( lastPosition,value.length() );
+
+	return bufferMessage;
+}
+string StringUtil::AddBetween( const string& value, const string& toadd, const string& first, const string& last )
+{
+	int firstPosition = value.find( first );
+	if ( firstPosition<0 )
+		throw runtime_error( "Index out of bounds ( first )" );
+
+	int lastPosition = value.find( last );
+	if ( lastPosition<0 )
+		throw runtime_error( "Index out of bounds ( last )" );
+
+	string bufferMessage = value.substr( 0, firstPosition + first.length() );
+	bufferMessage += toadd;
+	bufferMessage += value.substr( lastPosition, value.length() );
+
+	return bufferMessage;
+}
+
 string StringUtil::FindBetween( const string& value, const string& first, const string& last )
 {
 	string::size_type start = value.find( first );
