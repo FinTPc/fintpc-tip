@@ -37,6 +37,7 @@ void StringUtil::Split( const string& separator )
 {
 	m_Separator = separator;
 	m_SeparatorIndex = 0;
+	m_FromBackSeparatorIndex = m_Data.length();
 }
 
 string StringUtil::NextToken()
@@ -63,6 +64,36 @@ string StringUtil::NextToken()
 			m_SeparatorIndex = nextSeparator + 1;
 		else
 			m_SeparatorIndex = string::npos;
+	}
+		
+	return crtToken;
+}
+
+string StringUtil::PopBackToken()
+{			
+	string crtToken = "";
+
+	// return empty string if we reached the end of the string
+	if( m_FromBackSeparatorIndex == string::npos )
+		return crtToken;
+		
+	string::size_type nextSeparator = m_Data.find_last_of( m_Separator, m_FromBackSeparatorIndex );
+		
+	if( nextSeparator == string::npos )
+	{
+		if( m_FromBackSeparatorIndex == m_Data.length() )
+			crtToken = m_Data;
+
+		m_FromBackSeparatorIndex = string::npos;
+	}
+	else
+	{
+		crtToken = m_Data.substr( 0, nextSeparator );
+		
+		if( nextSeparator != m_Data.length() )
+			m_FromBackSeparatorIndex = nextSeparator - 1;
+		else
+			m_FromBackSeparatorIndex = string::npos;
 	}
 		
 	return crtToken;

@@ -43,6 +43,8 @@ namespace FinTP
 			// Finds the filename in the specified path
 			//<returns>The full filename( filename + extension )</returns>
 			static string GetFilename( const string& path );
+
+			static string MoveBack( const string& path );
 	};
 
 	class ExportedUtilsObject Convert

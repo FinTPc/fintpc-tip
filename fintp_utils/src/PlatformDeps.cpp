@@ -89,6 +89,22 @@ string Path::GetFilename( const string& path )
 	return path.substr( indexLastSeparator + Path::PATH_SEPARATOR.length() ); 
 }
 
+
+string Path::MoveBack( const string& path )
+{
+	string bufferPath;
+#ifdef WIN32
+	bufferPath = StringUtil::Replace( path, "/", Path::PATH_SEPARATOR );
+#else
+	bufferPath = StringUtil::Replace( path, "\\", Path::PATH_SEPARATOR );
+#endif
+
+	StringUtil returnPath( bufferPath );
+	returnPath.Split( Path::PATH_SEPARATOR );
+
+	return returnPath.PopBackToken();
+}
+
 string Platform::GetOSName()
 {
 #if defined( WIN32 )

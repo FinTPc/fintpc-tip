@@ -39,6 +39,7 @@ namespace FinTP
 			string m_Data;
 			
 			string::size_type m_SeparatorIndex;
+			string::size_type m_FromBackSeparatorIndex;
 			
 			inline static bool nocase_compare( char c1, char c2 );
 			//inline static char to_upper( char c1 );
@@ -49,6 +50,7 @@ namespace FinTP
 			
 			void Split( const string& separator );
 			string NextToken();
+			string PopBackToken();
 			bool MoreTokens() const;
 			
 			
